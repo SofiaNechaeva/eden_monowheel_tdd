@@ -1,6 +1,6 @@
 """Тестовая обёртка-пилот для сценариев в стиле Given–When–Then."""
 
-from eden_tdd.eden_monowheel import EdenMonowheel
+from eden_monowheel import EdenMonowheel
 
 
 class Pilot:

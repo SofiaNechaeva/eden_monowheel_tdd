@@ -2,7 +2,7 @@
 
 import unittest
 
-from eden_tdd.eden_monowheel import (
+from eden_monowheel import (
     EdenMonowheel,
     MonowheelEquipmentError,
     MonowheelError,
@@ -64,8 +64,10 @@ class EdenMonowheelUnitTests(unittest.TestCase):
         # Assert
         self.assertEqual(set(status), {"name", "wheel_diameter_m", "max_speed_kmh", "energy", "position_km", "mileage_km", "on_track", "gondola_open", "equipment_attached", "equipment_active", "helper_active", "trench_volume_t", "trench_remaining_t", "trench_filled"})
         self.assertIsInstance(wheel.name, str)
-        for value in (wheel.wheel_diameter_m, wheel.max_speed_kmh, wheel.energy, wheel.position_km, wheel.mileage_km, wheel.trench_volume_t, wheel.trench_remaining_t): self.assertIsInstance(value, float)
-        for value in (wheel.on_track, wheel.gondola_open, wheel.equipment_attached, wheel.equipment_active, wheel.helper_active, wheel.trench_filled): self.assertIsInstance(value, bool)
+        for value in (wheel.wheel_diameter_m, wheel.max_speed_kmh, wheel.energy, wheel.position_km, wheel.mileage_km, wheel.trench_volume_t, wheel.trench_remaining_t):
+            self.assertIsInstance(value, float)
+        for value in (wheel.on_track, wheel.gondola_open, wheel.equipment_attached, wheel.equipment_active, wheel.helper_active, wheel.trench_filled):
+            self.assertIsInstance(value, bool)
 
     def test_TC_008_move_main_track(self):
         # Arrange
@@ -119,7 +121,9 @@ class EdenMonowheelUnitTests(unittest.TestCase):
     def test_TC_014_move_zero_speed(self):
         # Arrange
         wheel = self.make_wheel(80)
-        wheel.move(100, .1, "track", main_track=True); before = self.snapshot(wheel)
+        wheel.move(100, .1, "track", main_track=True)
+        wheel.open_gondola()
+        before = self.snapshot(wheel)
         # Act
         distance = wheel.move(0, 0.5, "ground")
         # Assert
@@ -140,7 +144,7 @@ class EdenMonowheelUnitTests(unittest.TestCase):
         wheel = self.make_wheel()
         before = self.snapshot(wheel)
         # Act / Assert
-        with self.assertRaises(ValueError): 
+        with self.assertRaises(ValueError):
             wheel.move(20, 1, "water")
         self.assert_state(wheel, before)
 
@@ -182,12 +186,12 @@ class EdenMonowheelUnitTests(unittest.TestCase):
 
     def test_TC_021_move_open_gondola_raises(self):
         # Arrange
-        wheel = self.make_wheel()
+        wheel = self.make_wheel(0)
         wheel.open_gondola()
         # Act / Assert
         with self.assertRaises(MonowheelGondolaOpen): 
-            wheel.move(100, .1, "track", main_track=True)
-        self.assertEqual((wheel.position_km, wheel.mileage_km, wheel.energy), (0, 0, 100))
+            wheel.move(20, .1, "ground")
+        self.assertEqual((wheel.position_km, wheel.mileage_km, wheel.energy), (0, 0, 0))
 
     def test_TC_022_move_arrive_on_track(self):
         # Arrange
@@ -199,16 +203,19 @@ class EdenMonowheelUnitTests(unittest.TestCase):
 
     def test_TC_023_move_ground_main_track_raises(self):
         # Arrange
-        wheel = self.make_wheel(); before = self.snapshot(wheel)
+        wheel = self.make_wheel()
+        before = self.snapshot(wheel)
         # Act / Assert
-        with self.assertRaises(ValueError): wheel.move(20, 0.5, "ground", main_track=True)
+        with self.assertRaises(ValueError):
+            wheel.move(20, 0.5, "ground", main_track=True)
         self.assert_state(wheel, before)
 
     def test_TC_024_move_track_arrival_flag_raises(self):
         # Arrange
         wheel = self.make_wheel()
         # Act / Assert
-        with self.assertRaises(ValueError): wheel.move(100, .1, "track", arrive_on_track=True)
+        with self.assertRaises(ValueError):
+            wheel.move(100, .1, "track", arrive_on_track=True)
 
     def test_TC_025_calculate_energy_no_state_change(self):
         # Arrange
@@ -230,7 +237,8 @@ class EdenMonowheelUnitTests(unittest.TestCase):
 
     def test_TC_027_can_overcome_too_wide(self):
         # Arrange
-        wheel = self.make_wheel(); before = self.snapshot(wheel)
+        wheel = self.make_wheel()
+        before = self.snapshot(wheel)
         # Act / Assert
         self.assertFalse(wheel.can_overcome(2.5))
         self.assert_state(wheel, before)
@@ -244,12 +252,12 @@ class EdenMonowheelUnitTests(unittest.TestCase):
 
     def test_TC_029_recharge_on_track(self):
         # Arrange
-        wheel = self.make_wheel(20)
+        wheel = self.make_wheel(50)
         wheel.move(1, 1, "track")
         # Act
-        wheel.recharge(70)
+        wheel.recharge(100)
         # Assert
-        self.assertEqual((wheel.energy, wheel.position_km, wheel.mileage_km), (70, 0, 1))
+        self.assertEqual((wheel.energy, wheel.position_km, wheel.mileage_km), (100, 0, 1))
 
     def test_TC_030_recharge_off_track_raises(self):
         # Arrange
@@ -265,7 +273,7 @@ class EdenMonowheelUnitTests(unittest.TestCase):
         wheel.move(1, 1, "track")
         # Act / Assert
         with self.assertRaises(ValueError):
-            wheel.recharge(110)
+            wheel.recharge(101)
         self.assertEqual(wheel.energy, 20)
 
     def test_TC_032_recharge_below_current_raises(self):
@@ -314,6 +322,7 @@ class EdenMonowheelUnitTests(unittest.TestCase):
         # Arrange
         wheel = self.make_wheel()
         wheel.attach_equipment()
+        wheel.set_equipment_active(True)
         # Act
         wheel.detach_equipment()
         # Assert
@@ -329,7 +338,8 @@ class EdenMonowheelUnitTests(unittest.TestCase):
 
     def test_TC_039_set_equipment_active(self):
         # Arrange
-        wheel = self.make_wheel(); wheel.attach_equipment()
+        wheel = self.make_wheel()
+        wheel.attach_equipment()
         # Act
         wheel.set_equipment_active(True)
         # Assert
@@ -347,10 +357,11 @@ class EdenMonowheelUnitTests(unittest.TestCase):
     def test_TC_041_assess_trench(self):
         # Arrange
         wheel = self.make_wheel()
-        # Act
         wheel.assess_trench(3)
+        # Act
+        wheel.assess_trench(2)
         # Assert
-        self.assertEqual((wheel.trench_volume_t, wheel.trench_remaining_t, wheel.trench_filled, wheel.energy), (3, 3, False, 100))
+        self.assertEqual((wheel.trench_volume_t, wheel.trench_remaining_t, wheel.trench_filled, wheel.energy), (2, 2, False, 100))
 
     def test_TC_042_assess_trench_invalid_volume_raises(self):
         # Arrange
@@ -404,14 +415,29 @@ class EdenMonowheelUnitTests(unittest.TestCase):
     def test_TC_047_status_keys(self):
         # Arrange
         wheel = self.make_wheel()
-        before = self.snapshot(wheel)
+        expected = {
+            "name": "Эдем",
+            "wheel_diameter_m": 4.0,
+            "max_speed_kmh": 300.0,
+            "energy": 100.0,
+            "position_km": 0.0,
+            "mileage_km": 0.0,
+            "on_track": False,
+            "gondola_open": False,
+            "equipment_attached": False,
+            "equipment_active": False,
+            "helper_active": False,
+            "trench_volume_t": 0.0,
+            "trench_remaining_t": 0.0,
+            "trench_filled": False,
+        }
         # Act
         status = wheel.get_status()
         # Assert
         self.assertIsInstance(status, dict)
-        self.assertEqual(set(status), set(before))
-        self.assertEqual(status, before)
-        self.assert_state(wheel, before)
+        self.assertEqual(status, expected)
+        for name, value in expected.items():
+            self.assertEqual(getattr(wheel, name), value)
 
     def test_TC_048_invalid_parameters_raise(self):
         # Arrange
@@ -476,6 +502,7 @@ class EdenMonowheelUnitTests(unittest.TestCase):
     def test_TC_058_invalid_speed_has_priority_over_no_energy(self):
         # Arrange
         wheel = self.make_wheel(10)
+        wheel.open_gondola()
         before = self.snapshot(wheel)
 
         # Act / Assert
@@ -508,17 +535,17 @@ class EdenMonowheelUnitTests(unittest.TestCase):
         wheel = self.make_wheel()
         before = self.snapshot(wheel)
 
-        # Act / Assert: NaN в скорости
+        # Act / Assert
         with self.assertRaises(ValueError):
             wheel.move(float("nan"), 0.1, "ground")
         self.assert_state(wheel, before)
 
-        # Act / Assert: бесконечное время
+        # Act / Assert
         with self.assertRaises(ValueError):
             wheel.move(20, float("inf"), "ground")
         self.assert_state(wheel, before)
 
-        # Act / Assert: бесконечная ширина препятствия
+        # Act / Assert
         with self.assertRaises(ValueError):
             wheel.can_overcome(float("inf"))
         self.assert_state(wheel, before)
@@ -540,3 +567,104 @@ class EdenMonowheelUnitTests(unittest.TestCase):
         with self.assertRaises(ValueError): 
             wheel.move(60, .1, "ground")
         self.assert_state(wheel, before)
+
+    def test_TC_064_equipment_works_after_starting_on_track(self):
+        # Arrange
+        wheel = self._equipped_wheel(100, 1)
+        wheel.on_track = True
+        # Act
+        wheel.move(20, .05, "ground")
+        # Assert
+        self.assertEqual((wheel.trench_remaining_t, wheel.trench_filled, wheel.energy), (0, True, 83))
+
+    def test_TC_065_equipment_works_when_arriving_on_track(self):
+        # Arrange
+        wheel = self._equipped_wheel(100, 1)
+        # Act
+        wheel.move(20, .05, "ground", arrive_on_track=True)
+        # Assert
+        self.assertEqual((wheel.trench_remaining_t, wheel.trench_filled, wheel.energy, wheel.on_track), (0, True, 83, True))
+
+    def test_TC_066_recharge_validates_target_before_track(self):
+        # Arrange
+        wheel = self.make_wheel(20)
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            wheel.recharge(110)
+        self.assertEqual(wheel.energy, 20)
+
+    def test_TC_067_track_speed_limit_uses_absolute_value(self):
+        # Arrange
+        wheel = self.make_wheel()
+        before = self.snapshot(wheel)
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            wheel.move(-301, .1, "track", main_track=True)
+        self.assert_state(wheel, before)
+
+    def test_TC_068_constructive_speed_caps_helper_limit(self):
+        # Arrange
+        wheel = EdenMonowheel("Эдем", 4, 45, 100)
+        wheel.set_helper_active(True)
+        before = self.snapshot(wheel)
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            wheel.move(46, .1, "ground")
+        self.assert_state(wheel, before)
+
+    def test_TC_069_invalid_route_flag_raises(self):
+        # Arrange
+        wheel = self.make_wheel()
+        before = self.snapshot(wheel)
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            wheel.move(20, .1, "ground", main_track="yes")
+        self.assert_state(wheel, before)
+
+    def test_TC_070_invalid_helper_flag_raises(self):
+        # Arrange
+        wheel = self.make_wheel()
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            wheel.set_helper_active("yes")
+        self.assertFalse(wheel.helper_active)
+
+    def test_TC_071_bool_is_not_numeric_speed(self):
+        # Arrange
+        wheel = self.make_wheel()
+        before = self.snapshot(wheel)
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            wheel.move(True, .1, "ground")
+        self.assert_state(wheel, before)
+
+    def test_TC_072_read_only_energy_cannot_be_assigned(self):
+        # Arrange
+        wheel = self.make_wheel()
+        # Act / Assert
+        with self.assertRaises(AttributeError):
+            wheel.energy = 50
+
+    def test_TC_073_on_track_requires_bool(self):
+        # Arrange
+        wheel = self.make_wheel()
+        # Act / Assert
+        with self.assertRaises(ValueError):
+            wheel.on_track = "yes"
+        self.assertFalse(wheel.on_track)
+
+    def test_TC_074_equipment_does_not_work_on_track(self):
+        # Arrange
+        wheel = self._equipped_wheel(100, 1)
+        # Act
+        wheel.move(20, .05, "track")
+        # Assert
+        self.assertEqual((wheel.trench_remaining_t, wheel.trench_filled, wheel.energy), (1, False, 100))
+
+    def test_TC_075_equipment_does_not_work_without_movement(self):
+        # Arrange
+        wheel = self._equipped_wheel(100, 1)
+        # Act
+        wheel.move(0, .05, "ground")
+        # Assert
+        self.assertEqual((wheel.trench_remaining_t, wheel.trench_filled, wheel.energy), (1, False, 100))

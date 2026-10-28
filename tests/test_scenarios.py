@@ -1,7 +1,7 @@
 import unittest
 
-from eden_tdd.eden_monowheel import EdenMonowheel, MonowheelGondolaOpen, MonowheelNoEnergy, MonowheelNotOnTrack
-from eden_tdd.tests.pilot import Pilot
+from eden_monowheel import EdenMonowheel, MonowheelGondolaOpen, MonowheelNoEnergy, MonowheelNotOnTrack
+from tests.pilot import Pilot
 
 
 class EdenMonowheelScenarioTests(unittest.TestCase):
